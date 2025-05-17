@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>نظام الأرشفة الإلكترونية</title>
+  <style>
+    :root {
+      --primary:    #186e2b;
+      --secondary:  #bf9930;
+      --light:      #ffffff;
+      --bg:         #f4f4f4;
+      --text:       #333333;
+      --text-light: #ffffff;
+    }
+    *,*::before,*::after {box-sizing:border-box;margin:0;padding:0;}
+    html {font-size:16px;scroll-behavior:smooth;}
+    body {
+      font-family:Arial,sans-serif;direction:rtl;
+      background:var(--bg);color:var(--text);
+    }
+    header {
+      position:fixed;top:0;left:0;right:0;height:60px;
+      background:var(--primary);color:var(--text-light);
+      display:flex;align-items:center;justify-content:center;
+      z-index:100;
+    }
+    header h1 {font-size:1.25rem;}
+
+    nav {
+      position:fixed;top:60px;left:0;bottom:0;width:240px;
+      background:var(--primary);padding-top:20px;
+      box-shadow:2px 0 5px rgba(0,0,0,.1);
+    }
+    nav a {
+      display:flex;align-items:center;padding:12px 20px;
+      color:var(--text-light);text-decoration:none;
+      font-size:.95rem;transition:background .2s;
+    }
+    nav a.active, nav a:hover {background:var(--secondary);}
+    .icon {margin-left:10px;font-size:1.1rem;}
+
+    main {
+      margin:60px 0 40px 240px;padding:20px;
+    }
+    .view {display:none;}
+    .view.active {display:block;}
+
+    /* الرئيسية */
+    .stats-grid {
+      display:flex;justify-content:center;gap:20px;margin-top:20px;
+    }
+    .stat-card {
+      background:var(--light);padding:20px;
+      border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,.1);
+      width:150px;text-align:center;
+    }
+    .stat-card h2 {color:var(--primary);margin-bottom:8px;}
+    .actions {text-align:center;margin-top:30px;}
+    .actions button {
+      background:var(--secondary);color:var(--text-light);
+      border:none;border-radius:4px;
+      padding:10px 20px;margin:0 10px;
+      cursor:pointer;transition:background .2s;
+    }
+    .actions button:hover{background:#a17c28;}
+
+    /* الأقسام */
+    .toolbar {text-align:center;margin-bottom:20px;}
+    .toolbar button {
+      margin:0 5px;padding:8px 12px;
+      background:var(--secondary);color:var(--text-light);
+      border:none;border-radius:4px;cursor:pointer;
+    }
+    #cards {
+      display:flex;flex-wrap:wrap;gap:12px;justify-content:center;
+    }
+    .card {
+      background:var(--light);padding:16px;
+      border-radius:6px;box-shadow:0 2px 4px rgba(0,0,0,.1);
+      width:140px;text-align:center;cursor:pointer;
+      position:relative;transition:border .2s;
+    }
+    .card.selected {border:2px solid var(--primary);}
+    .card .del {
+      position:absolute;top:4px;right:6px;
+      cursor:pointer;color:#c00;font-size:.9rem;
+    }
+    #files-section {margin-top:30px;text-align:center;}
+    #files-section h3 {color:var(--primary);margin-bottom:10px;}
+    .files-grid {
+      display:flex;flex-wrap:wrap;gap:12px;justify-content:center;
+    }
+    .file-item {
+      position:relative;width:120px;padding:8px;
+      background:var(--light);border:1px solid #ccc;
+      border-radius:6px;text-align:center;cursor:pointer;
+      overflow:hidden;white-space:nowrap;text-overflow:ellipsis;
+      transition:background .2s,transform .2s;
+    }
+    .file-item:hover {background:#eee;transform:translateY(-2px);}
+    .file-item .del-file {
+      position:absolute;top:4px;right:4px;
+      background:rgba(255,255,255,.8);border-radius:50%;
+      padding:2px 4px;font-size:.8rem;cursor:pointer;
+    }
+    .file-item .del-file:hover {
+      background:var(--secondary);color:var(--text-light);
+    }
+    #section-details {
+      margin:30px auto;max-width:800px;
+      background:var(--light);padding:15px;
+      border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,.1);
+      text-align:left;
+    }
+    #section-details h3 {color:var(--primary);margin-bottom:8px;}
+    #section-details p {color:#555;line-height:1.4;}
+
+    /* الأرشيف */
+    .arch-header {
+      font-size:1.2rem;color:var(--primary);
+      margin-bottom:12px;text-align:center;
+    }
+    .search-bar {
+      display:flex;flex-wrap:wrap;gap:10px;
+      justify-content:center;margin-bottom:20px;
+    }
+    .search-bar select,
+    .search-bar input[type="number"],
+    .search-bar input[type="text"],
+    .search-bar button {
+      padding:6px;border:1px solid #ccc;border-radius:4px;
+      font-size:1rem;
+    }
+    .search-bar button {
+      background:var(--secondary);
+      color:var(--text-light);
+      border:none;cursor:pointer;
+      transition:background .2s;
+    }
+    .search-bar button:hover{background:#a17c28;}
+    #search-results-arc {
+      margin-bottom:20px;text-align:center;
+    }
+    .year-grid {
+      display:flex;gap:12px;flex-wrap:wrap;justify-content:center;
+      margin-bottom:20px;
+    }
+    .year-card {
+      padding:8px 14px;
+      background:var(--light);border:2px solid var(--secondary);
+      border-radius:6px;cursor:pointer;
+      transition:background .2s,transform .2s;
+    }
+    .year-card:hover {
+      background:var(--secondary);color:var(--text-light);
+      transform:translateY(-2px);
+    }
+    .year-card.selected {
+      background:var(--secondary);color:var(--text-light);
+    }
+    .hierarchy ul {
+      list-style:none;padding:0;margin:10px 0;
+      display:flex;flex-wrap:wrap;gap:10px;justify-content:center;
+    }
+    .hierarchy li {
+      padding:6px 12px;background:var(--light);
+      border:1px solid var(--secondary);border-radius:6px;
+      cursor:pointer;transition:background .2s,transform .2s;
+    }
+    .hierarchy li:hover {
+      background:var(--secondary);color:var(--text-light);
+      transform:translateY(-2px);
+    }
+    .hierarchy li.selected {
+      background:var(--secondary);color:var(--text-light);
+    }
+
+    /* مودالات */
+    .modal {
+      display:none;position:fixed;top:0;left:0;
+      width:100%;height:100%;background:rgba(0,0,0,.5);
+      justify-content:center;align-items:center;z-index:200;
+    }
+    .modal-content {
+      background:var(--light);border-radius:8px;
+      padding:20px;max-width:90%;max-height:90%;
+      overflow:auto;position:relative;
+    }
+    .modal-content .close {
+      position:absolute;top:10px;right:10px;
+      font-size:1.5rem;cursor:pointer;
+    }
+    .modal-content input,
+    .modal-content textarea,
+    .modal-content select {
+      width:100%;margin:8px 0;padding:6px;font-size:1rem;
+    }
+    #chart {width:100%;height:300px;}
+    #report-list {
+      list-style:none;text-align:left;
+      max-height:300px;overflow:auto;
+    }
+    #report-list li {margin:6px 0;}
+
+    footer {
+      position:fixed;bottom:0;left:240px;right:0;height:40px;
+      background:var(--primary);color:var(--text-light);
+      display:flex;align-items:center;justify-content:center;
+      font-size:.85rem;z-index:100;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>نظام الأرشفة الإلكترونية</h1>
+  </header>
+
+  <nav>
+    <a href="#" data-view="home" class="active"><span class="icon">🏠</span>الرئيسية</a>
+    <a href="#" data-view="sections"><span class="icon">📁</span>الأقسام</a>
+    <a href="#" data-view="archive"><span class="icon">📂</span>الأرشيف</a>
+  </nav>
+
+  <main>
+    <!-- الرئيسية -->
+    <div id="home" class="view active">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h2 id="stat-sections">0</h2><p>عدد الأقسام</p>
+        </div>
+        <div class="stat-card">
+          <h2 id="stat-files">0</h2><p>عدد الملفات</p>
+        </div>
+        <div class="stat-card">
+          <h2 id="stat-size">0 MB</h2><p>حجم الملفات</p>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="btn-stats">إحصائيات</button>
+        <button id="btn-report">تقرير</button>
+      </div>
+    </div>
+
+    <!-- الأقسام -->
+    <div id="sections" class="view">
+      <div class="toolbar">
+        <button id="add-section-btn">إضافة قسم</button>
+        <button id="edit-section-btn" disabled>تعديل قسم</button>
+        <button id="delete-section-btn" disabled>حذف قسم</button>
+        <button id="attach-file-btn" disabled>إرفاق ملف</button>
+        <input type="file" id="file-input" style="display:none" multiple>
+      </div>
+      <div id="cards"></div>
+      <div id="files-section">
+        <h3>الملفات في القسم</h3>
+        <div class="files-grid" id="files-list"></div>
+      </div>
+      <div id="section-details">
+        <h3>تفاصيل القسم</h3>
+        <p id="section-description">لم يتم اختيار قسم.</p>
+      </div>
+    </div>
+
+    <!-- الأرشيف -->
+    <div id="archive" class="view">
+      <h2 class="arch-header">الأرشيف</h2>
+      <div class="search-bar">
+        <select id="filter-type-arc">
+          <option value="year">السنة</option>
+          <option value="section">القسم</option>
+          <option value="type">نوع الملف</option>
+        </select>
+        <input type="number" id="year-input-arc" placeholder="2025" style="width:100px;">
+        <select id="section-select-arc" style="width:150px;display:none;"></select>
+        <select id="type-input-arc" style="display:none;">
+          <option value="">اختر نوع</option>
+          <option value="pdf">PDF</option>
+          <option value="image">صور</option>
+          <option value="excel">Excel</option>
+        </select>
+        <input type="text" id="name-input-arc" placeholder="اسم الملف" style="width:150px;">
+        <button id="search-arc-btn">بحث</button>
+        <button id="reset-arc-btn">إعادة</button>
+      </div>
+      <div id="search-results-arc"></div>
+      <div class="year-grid" id="year-grid"></div>
+      <div class="hierarchy">
+        <ul id="archive-sections"></ul>
+        <ul id="archive-files"></ul>
+      </div>
+    </div>
+  </main>
+
+  <!-- مودال الإحصائيات -->
+  <div id="modal-stats" class="modal">
+    <div class="modal-content">
+      <span class="close" data-close="modal-stats">&times;</span>
+      <h3>إحصائيات</h3>
+      <select id="stats-range">
+        <option value="daily">يومي</option>
+        <option value="monthly">شهري</option>
+        <option value="yearly">سنوي</option>
+      </select>
+      <canvas id="chart"></canvas>
+      <button onclick="window.print()">طباعة</button>
+    </div>
+  </div>
+
+  <!-- مودال التقرير -->
+  <div id="modal-report" class="modal">
+    <div class="modal-content">
+      <span class="close" data-close="modal-report">&times;</span>
+      <h3>تقرير</h3>
+      <select id="report-range">
+        <option value="daily">يومي</option>
+        <option value="weekly">أسبوعي</option>
+        <option value="monthly">شهري</option>
+        <option value="yearly">سنوي</option>
+      </select>
+      <ul id="report-list"></ul>
+      <button onclick="window.print()">طباعة</button>
+    </div>
+  </div>
+
+  <!-- مودال إضافة/تعديل القسم -->
+  <div id="section-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" data-close="section-modal">&times;</span>
+      <h3 id="modal-title">إضافة قسم</h3>
+      <input type="text" id="sec-name" placeholder="اسم القسم"/>
+      <textarea id="sec-desc" placeholder="الوصف (اختياري)"></textarea>
+      <button id="save-section-btn">حفظ</button>
+    </div>
+  </div>
+
+  <!-- مودال معاينة الملف -->
+  <div id="file-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" data-close="file-modal">&times;</span>
+      <iframe id="file-preview" style="display:none;width:100%;height:100%;border:none;"></iframe>
+      <img id="img-preview" style="display:none;object-fit:contain;width:100%;height:100%;"/>
+    </div>
+  </div>
+
+  <footer>جميع الحقوق محفوظة © 2025 الجمعية</footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    // تبديل العرض عن طريق القائمة الجانبية
+    document.querySelectorAll('nav a').forEach(link => {
+      link.onclick = e => {
+        e.preventDefault();
+        document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+        link.classList.add('active');
+        const view = link.dataset.view;
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(view).classList.add('active');
+        if (view === 'archive') {
+          fillSectionOptionsArc();
+          initArchive();
+        }
+      };
+    });
+
+    // تهيئة البيانات من localStorage
+    let sections = JSON.parse(localStorage.getItem('sections')||'[]');
+    let files    = JSON.parse(localStorage.getItem('files')   ||'[]');
+    if (!localStorage.getItem('initialized')) {
+      localStorage.setItem('sections','[]');
+      localStorage.setItem('files','[]');
+      localStorage.setItem('initialized','1');
+      sections = []; files = [];
+    }
+
+    // إغلاق المودالات
+    document.querySelectorAll('.close').forEach(el =>
+      el.onclick = () => el.closest('.modal').style.display = 'none'
+    );
+
+    // ========== الرئيسية ==========
+    function updateStats() {
+      document.getElementById('stat-sections').textContent = sections.length;
+      document.getElementById('stat-files').textContent    = files.length;
+      const total = files.reduce((s,f) => s + (f.sizeBytes||0), 0);
+      document.getElementById('stat-size').textContent     =
+        (total/1024/1024).toFixed(2) + ' MB';
+    }
+    updateStats();
+
+    function getRecords() {
+      return files.map(f => ({
+        filename: f.filename,
+        section: sections.find(s => s.id === f.sectionId)?.name || '—',
+        date: new Date(f.archivedAt)
+      }));
+    }
+
+    // إحصائيات
+    let chart;
+    function renderChart() {
+      const range = document.getElementById('stats-range').value;
+      const now = new Date(), buckets = {};
+      let start;
+      if (range==='daily') start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      else if (range==='monthly') start = new Date(now.getFullYear(), now.getMonth(), 1);
+      else start = new Date(now.getFullYear(), 0, 1);
+      getRecords().forEach(r => {
+        if (r.date >= start) {
+          let key;
+          if (range==='daily') key = r.date.getHours()+':00';
+          else if (range==='monthly') key = `${r.date.getDate()}/${r.date.getMonth()+1}`;
+          else key = `${r.date.getMonth()+1}/${r.date.getFullYear()}`;
+          buckets[key] = (buckets[key]||0)+1;
+        }
+      });
+      const labels = Object.keys(buckets).sort();
+      const data = labels.map(l => buckets[l]);
+      const ctx = document.getElementById('chart').getContext('2d');
+      if (chart) chart.destroy();
+      chart = new Chart(ctx, {
+        type: 'bar',
+        data: {labels, datasets:[{label:'عدد الملفات',data}]},
+        options:{responsive:true}
+      });
+    }
+    document.getElementById('btn-stats').onclick = () => {
+      document.getElementById('modal-stats').style.display = 'flex';
+      renderChart();
+    };
+    document.getElementById('stats-range').onchange = renderChart;
+
+    // التقرير
+    function renderReport() {
+      const range = document.getElementById('report-range').value;
+      const now = new Date();
+      const recs = getRecords().filter(r => {
+        if (range==='daily') return r.date.toDateString()===now.toDateString();
+        if (range==='weekly') return r.date >= new Date(now.getTime()-7*24*3600e3);
+        if (range==='monthly') return r.date.getMonth()===now.getMonth() && r.date.getFullYear()===now.getFullYear();
+        if (range==='yearly') return r.date.getFullYear()===now.getFullYear();
+      });
+      const ul = document.getElementById('report-list');
+      ul.innerHTML = '';
+      if (!recs.length) return ul.innerHTML = '<li>لا توجد بيانات</li>';
+      recs.sort((a,b)=>b.date-a.date).forEach(r => {
+        const li = document.createElement('li');
+        li.textContent = `${r.filename} (${r.section}) – ${r.date.toLocaleString()}`;
+        ul.appendChild(li);
+      });
+    }
+    document.getElementById('btn-report').onclick = () => {
+      document.getElementById('modal-report').style.display = 'flex';
+      renderReport();
+    };
+    document.getElementById('report-range').onchange = renderReport;
+
+    // حفظ في localStorage
+    function persist() {
+      localStorage.setItem('sections', JSON.stringify(sections));
+      localStorage.setItem('files',    JSON.stringify(files));
+      updateStats();
+    }
+
+    // ========== الأقسام ==========
+    let selectedId = null, editingId = null;
+    const cardsEl      = document.getElementById('cards');
+    const addBtn       = document.getElementById('add-section-btn');
+    const editBtn      = document.getElementById('edit-section-btn');
+    const delBtn       = document.getElementById('delete-section-btn');
+    const attBtn       = document.getElementById('attach-file-btn');
+    const fileIn       = document.getElementById('file-input');
+    const secModal     = document.getElementById('section-modal');
+    const titleMd      = document.getElementById('modal-title');
+    const inpName      = document.getElementById('sec-name');
+    const inpDesc      = document.getElementById('sec-desc');
+    const saveSec      = document.getElementById('save-section-btn');
+    const filesListEl2 = document.getElementById('files-list');
+    const descEl       = document.getElementById('section-description');
+
+    function renderSections() {
+      cardsEl.innerHTML = '';
+      sections.forEach(sec => {
+        const d = document.createElement('div');
+        d.className = 'card' + (sec.id===selectedId?' selected':'');
+        d.innerHTML = `<span class="del" data-id="${sec.id}">&times;</span><h4>${sec.name}</h4>`;
+        d.onclick = () => {
+          selectedId = (sec.id===selectedId? null: sec.id);
+          renderSections();
+        };
+        cardsEl.appendChild(d);
+      });
+      editBtn.disabled = delBtn.disabled = attBtn.disabled = !selectedId;
+      renderFiles(); renderDetails();
+      cardsEl.querySelectorAll('.del').forEach(el => {
+        el.onclick = e => {
+          e.stopPropagation();
+          deleteSection(+el.dataset.id);
+        };
+      });
+    }
+
+    function renderFiles() {
+      filesListEl2.innerHTML = '';
+      if (!selectedId) return;
+      const secFiles = files.filter(f => f.sectionId===selectedId);
+      if (!secFiles.length) {
+        filesListEl2.innerHTML = '<p>لا توجد ملفات.</p>';
+        return;
+      }
+      secFiles.forEach(f => {
+        const div = document.createElement('div');
+        div.className = 'file-item';
+        div.innerHTML = `<span class="del-file" data-id="${f.id}">&times;</span>${f.filename}`;
+        div.onclick = () => previewFile(f);
+        filesListEl2.appendChild(div);
+      });
+      filesListEl2.querySelectorAll('.del-file').forEach(el => {
+        el.onclick = e => {
+          e.stopPropagation();
+          files = files.filter(x => x.id!== +el.dataset.id);
+          persist(); renderFiles();
+        };
+      });
+    }
+
+    function renderDetails() {
+      if (!selectedId) {
+        descEl.textContent = 'لم يتم اختيار قسم.';
+        return;
+      }
+      const sec = sections.find(s => s.id===selectedId);
+      descEl.textContent = sec.description || 'لا يوجد وصف.';
+    }
+
+    addBtn.onclick = () => {
+      editingId = null; titleMd.textContent = 'إضافة قسم';
+      inpName.value=''; inpDesc.value='';
+      secModal.style.display='flex';
+    };
+    editBtn.onclick = () => {
+      const sec = sections.find(s => s.id===selectedId);
+      if (!sec) return;
+      editingId = sec.id; titleMd.textContent = 'تعديل قسم';
+      inpName.value=sec.name; inpDesc.value=sec.description||'';
+      secModal.style.display='flex';
+    };
+    saveSec.onclick = () => {
+      const nm = inpName.value.trim(); if (!nm) return alert('أدخل الاسم');
+      const dc = inpDesc.value.trim();
+      if (editingId) {
+        const sec = sections.find(s => s.id===editingId);
+        sec.name=nm; sec.description=dc;
+      } else {
+        sections.push({id:Date.now(),name:nm,description:dc});
+      }
+      secModal.style.display='none';
+      persist(); renderSections();
+    };
+    function deleteSection(id) {
+      if (!confirm('حذف القسم؟')) return;
+      sections = sections.filter(s => s.id!==id);
+      files    = files.filter(f => f.sectionId!==id);
+      if (selectedId===id) selectedId=null;
+      persist(); renderSections();
+    }
+    delBtn.onclick = () => selectedId && deleteSection(selectedId);
+
+    attBtn.onclick = () => fileIn.click();
+    fileIn.onchange = e => {
+      if (!selectedId) return;
+      Array.from(e.target.files).forEach(f => {
+        const r = new FileReader();
+        r.onload = ev => {
+          files.push({
+            id:Date.now()+Math.random(),
+            sectionId:selectedId,
+            filename:f.name,
+            dataURL:ev.target.result,
+            sizeBytes:f.size,
+            archivedAt:new Date().toISOString()
+          });
+          persist(); renderFiles();
+        };
+        r.readAsDataURL(f);
+      });
+      e.target.value='';
+    };
+
+    const fileModal = document.getElementById('file-modal');
+    const iframePrev = document.getElementById('file-preview');
+    const imgPrev    = document.getElementById('img-preview');
+    function previewFile(f){
+      const isImg = f.dataURL.startsWith('data:image');
+      iframePrev.style.display = isImg?'none':'block';
+      imgPrev.style.display    = isImg?'block':'none';
+      if (isImg) imgPrev.src = f.dataURL;
+      else iframePrev.src = f.dataURL;
+      fileModal.style.display='flex';
+    }
+
+    renderSections();
+
+    // ========== الأرشيف ==========
+    const filterArc       = document.getElementById('filter-type-arc');
+    const yearInputArc    = document.getElementById('year-input-arc');
+    const sectionSelectArc= document.getElementById('section-select-arc');
+    const typeInputArc    = document.getElementById('type-input-arc');
+    const nameInputArc    = document.getElementById('name-input-arc');
+    const searchArcBtn    = document.getElementById('search-arc-btn');
+    const resetArcBtn     = document.getElementById('reset-arc-btn');
+    const resultsArc      = document.getElementById('search-results-arc');
+    const yearGridEl      = document.getElementById('year-grid');
+    const archSecEl       = document.getElementById('archive-sections');
+    const archFileEl      = document.getElementById('archive-files');
+
+    function fillSectionOptionsArc(){
+      sectionSelectArc.innerHTML = '<option value="">--</option>';
+      sections.forEach(s=>{
+        sectionSelectArc.innerHTML += `<option value="${s.id}">${s.name}</option>`;
+      });
+    }
+
+    filterArc.onchange = () => {
+      yearInputArc.style.display      = filterArc.value==='year'    ? 'inline-block' : 'none';
+      sectionSelectArc.style.display  = filterArc.value==='section'? 'inline-block' : 'none';
+      typeInputArc.style.display      = filterArc.value==='type'    ? 'inline-block' : 'none';
+    };
+
+    function renderResults(container, arr){
+      container.innerHTML='';
+      if(!arr.length){ container.innerHTML='<p>لا توجد نتائج</p>'; return; }
+      arr.forEach(f=>{
+        const div = document.createElement('div');
+        div.className = 'file-item';
+        div.textContent= f.filename;
+        div.onclick = ()=>previewFile(f);
+        container.appendChild(div);
+      });
+    }
+
+    searchArcBtn.onclick = () => {
+      const yVal = parseInt(yearInputArc.value);
+      const sVal = sectionSelectArc.value;
+      const tVal = typeInputArc.value;
+      const nVal = nameInputArc.value.trim();
+      let found = [];
+      sections.forEach(sec=>{
+        (sec.files||[]).forEach(f=>{
+          let ok = true;
+          const y = new Date(f.archivedAt).getFullYear();
+          if(filterArc.value==='year'    && yVal) ok = ok && (y===yVal);
+          if(filterArc.value==='section' && sVal) ok = ok && (sec.id==sVal);
+          if(filterArc.value==='type'    && tVal) ok = ok && f.filename.endsWith('.'+tVal);
+          if(nVal) ok = ok && f.filename.includes(nVal);
+          if(ok) found.push(f);
+        });
+      });
+      renderResults(resultsArc, found);
+    };
+    resetArcBtn.onclick = () => {
+      resultsArc.innerHTML = '';
+      filterArc.value='year'; filterArc.onchange();
+      yearInputArc.value=''; nameInputArc.value='';
+    };
+
+    function initArchive(){
+      fillSectionOptionsArc();
+      resultsArc.innerHTML = '';
+      const yrs = [...new Set(files.map(f=>new Date(f.archivedAt).getFullYear()))]
+        .sort((a,b)=>b-a);
+      yearGridEl.innerHTML=''; archSecEl.innerHTML=''; archFileEl.innerHTML='';
+      yrs.forEach(y=>{
+        const c = document.createElement('div');
+        c.className='year-card'; c.textContent=y;
+        c.onclick=()=>{
+          yearGridEl.querySelectorAll('.year-card').forEach(x=>x.classList.remove('selected'));
+          c.classList.add('selected');
+          showArchSections(y);
+        };
+        yearGridEl.appendChild(c);
+      });
+    }
+
+    function showArchSections(year){
+      archSecEl.innerHTML=''; archFileEl.innerHTML='';
+      const secs = sections.filter(sec=>
+        files.some(f=>f.sectionId===sec.id && new Date(f.archivedAt).getFullYear()===year)
+      );
+      if(!secs.length) return archSecEl.innerHTML='<li>لا توجد أقسام</li>';
+      secs.forEach(sec=>{
+        const li=document.createElement('li');
+        li.textContent=sec.name;
+        li.onclick=()=>{
+          archSecEl.querySelectorAll('li').forEach(x=>x.classList.remove('selected'));
+          li.classList.add('selected');
+          showArchFiles(sec.id,year);
+        };
+        archSecEl.appendChild(li);
+      });
+    }
+
+    function showArchFiles(secId,year){
+      archFileEl.innerHTML='';
+      const fs = files.filter(f=>
+        f.sectionId===secId &&
+        new Date(f.archivedAt).getFullYear()===year
+      );
+      if(!fs.length) return archFileEl.innerHTML='<li>لا توجد ملفات</li>';
+      fs.forEach(f=>{
+        const li=document.createElement('li');
+        li.textContent=f.filename;
+        li.onclick=()=>previewFile(f);
+        archFileEl.appendChild(li);
+      });
+    }
+  </script>
+</body>
+</html>
