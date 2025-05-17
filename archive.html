@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>الأرشيف - نظام الأرشفة الإلكترونية</title>
+  <style>
+    :root {
+      --primary:    #186e2b;
+      --secondary:  #bf9930;
+      --light:      #ffffff;
+      --dark:       #121212;
+      --bg:         #f4f4f4;
+      --text:       #333333;
+      --text-light: #ffffff;
+    }
+    *, *::before, *::after { box-sizing:border-box; margin:0; padding:0; }
+    html { font-size:16px; scroll-behavior:smooth; }
+    body {
+      font-family:Arial,sans-serif;
+      direction:rtl;
+      background:var(--bg);
+      color:var(--text);
+      transition:background .3s, color .3s;
+      text-align:center;
+    }
+    header {
+      position:fixed; top:0; left:0; right:0; height:60px;
+      background:var(--primary); color:var(--text-light);
+      display:flex; align-items:center; justify-content:center;
+      z-index:100;
+    }
+    header h1 { font-size:1.5rem; }
+    nav {
+      position:fixed; top:60px; left:0; bottom:0; width:240px;
+      background:var(--primary); padding-top:20px;
+      box-shadow:2px 0 5px rgba(0,0,0,.1);
+      text-align:left;
+    }
+    nav a {
+      display:flex; align-items:center; padding:12px 20px;
+      color:var(--text-light); font-size:.95rem;
+      transition:background .2s;
+    }
+    nav a.active, nav a:hover { background:var(--secondary); }
+    .icon { margin-left:10px; font-size:1.1rem; }
+
+    .content {
+      margin:60px 0 0 240px;
+      padding:20px;
+    }
+
+    /* ===== شريط البحث ===== */
+    .search-bar {
+      display:flex; flex-wrap:wrap; gap:10px;
+      justify-content:center; margin-bottom:20px;
+    }
+    .search-bar select,
+    .search-bar input[type="number"],
+    .search-bar input[type="text"] {
+      padding:6px; border:1px solid #ccc; border-radius:4px;
+      font-size:1rem;
+    }
+    .search-bar button {
+      background:var(--secondary); color:var(--text-light);
+      border:none; border-radius:4px; padding:8px 16px;
+      font-size:1rem; cursor:pointer; transition:background .2s;
+    }
+    .search-bar button:hover {
+      background:#a17c28;
+    }
+    #search-results {
+      display:flex; flex-wrap:wrap; gap:12px;
+      justify-content:center; margin-bottom:30px;
+    }
+    #search-results .file-item {
+      width:120px; padding:8px; background:var(--light);
+      border:1px solid #ccc; border-radius:6px;
+      text-align:center; cursor:pointer;
+      overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+      transition:background .2s,transform .2s;
+    }
+    #search-results .file-item:hover {
+      background:#eee; transform:translateY(-2px);
+    }
+
+    /* ===== معرض السنوات ===== */
+    .year-section {
+      margin-bottom:30px;
+    }
+    .year-section h2 {
+      font-size:1.2rem; margin-bottom:12px; color:var(--primary);
+    }
+    .year-grid {
+      display:flex; gap:12px; flex-wrap:wrap; justify-content:center;
+    }
+    .year-card {
+      padding:10px 16px;
+      background:var(--light); border:2px solid var(--secondary);
+      border-radius:6px; cursor:pointer;
+      transition:background .2s, transform .2s;
+    }
+    .year-card:hover {
+      background:var(--secondary); color:var(--text-light);
+      transform:translateY(-2px);
+    }
+    .year-card.selected {
+      background:var(--secondary); color:var(--text-light);
+    }
+
+    /* ===== قائمة الأقسام والملفات ===== */
+    .hierarchy {
+      max-width:800px; margin:0 auto 40px;
+      text-align:center;
+    }
+    .hierarchy ul {
+      list-style:none; padding:0; margin:10px 0;
+      display:flex; flex-wrap:wrap; gap:10px; justify-content:center;
+    }
+    .hierarchy li {
+      padding:6px 12px; background:var(--light);
+      border:1px solid var(--secondary); border-radius:6px;
+      cursor:pointer; transition:background .2s, transform .2s;
+    }
+    .hierarchy li:hover {
+      background:var(--secondary); color:var(--text-light);
+      transform:translateY(-2px);
+    }
+    .hierarchy li.selected {
+      background:var(--secondary); color:var(--text-light);
+    }
+
+    /* مودال المعاينة */
+    .modal {
+      display:none; position:fixed; top:0; left:0;
+      width:100%; height:100%; background:rgba(0,0,0,.5);
+      justify-content:center; align-items:center; z-index:200;
+    }
+    .modal-content {
+      background:var(--light); border-radius:8px;
+      padding:20px; width:80%; max-width:600px;
+      height:80%; position:relative; overflow:auto;
+    }
+    .modal-content .close {
+      position:absolute; top:10px; right:10px;
+      font-size:1.5rem; cursor:pointer;
+    }
+    #preview-frame, #preview-img {
+      width:100%; height:100%; border:none;
+    }
+
+    footer {
+      position:fixed; bottom:0; left:240px; right:0; height:40px;
+      background:var(--primary); color:var(--text-light);
+      display:flex; align-items:center; justify-content:center;
+      font-size:.85rem; z-index:100;
+    }
+    body.dark-mode {
+      background:var(--dark); color:var(--text-light);
+    }
+    body.dark-mode header,
+    body.dark-mode nav,
+    body.dark-mode footer {
+      background:#0f4318;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>نظام الأرشفة الإلكترونية</h1>
+  </header>
+
+  <nav>
+    <a href="main.html"><span class="icon">🏠</span>الرئيسية</a>
+    <a href="sections.html"><span class="icon">📁</span>الأقسام</a>
+    <a href="archive.html" class="active"><span class="icon">📂</span>الأرشيف</a>
+    <a href="users.html"><span class="icon">👤</span>المستخدمون</a>
+    <a href="settings.html"><span class="icon">⚙️</span>الإعدادات</a>
+  </nav>
+
+  <div class="content">
+
+    <!-- شريط البحث -->
+    <div class="search-bar">
+      <select id="filter-type">
+        <option value="year">السنة</option>
+        <option value="section">القسم</option>
+        <option value="type">نوع الملف</option>
+      </select>
+      <input type="number" id="year-input" placeholder="2025" style="width:100px;">
+      <select id="section-select" style="display:none;width:150px;"></select>
+      <select id="type-input" style="display:none;">
+        <option value="">اختر نوع</option>
+        <option value="pdf">PDF</option>
+        <option value="image">صور</option>
+        <option value="excel">Excel</option>
+      </select>
+      <input type="text" id="name-input" placeholder="اسم الملف" style="width:150px;">
+      <button id="search-btn">بحث</button>
+      <button id="reset-btn">إعادة</button>
+    </div>
+
+    <!-- نتائج البحث -->
+    <div id="search-results"></div>
+
+    <!-- معرض السنوات -->
+    <div class="year-section">
+      <h2>التصفح حسب السنة</h2>
+      <div class="year-grid" id="year-grid"></div>
+    </div>
+
+    <!-- قائمة الأقسام ثم الملفات -->
+    <div class="hierarchy">
+      <ul id="section-list"></ul>
+      <ul id="file-list"></ul>
+    </div>
+
+  </div>
+
+  <!-- مودال المعاينة -->
+  <div id="file-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" data-close="file-modal">&times;</span>
+      <iframe id="preview-frame" style="display:none;"></iframe>
+      <img id="preview-img" style="display:none;object-fit:contain;" />
+    </div>
+  </div>
+
+  <footer>جميع الحقوق محفوظة © 2025 الجمعية</footer>
+
+  <script>
+    // جلب الأقسام من localStorage
+    const sections = JSON.parse(localStorage.getItem('sectionsData') || '[]');
+
+    // —— Search Functionality —— //
+    const filterType   = document.getElementById('filter-type');
+    const yearInput    = document.getElementById('year-input');
+    const sectionSelect= document.getElementById('section-select');
+    const typeInput    = document.getElementById('type-input');
+    const nameInput    = document.getElementById('name-input');
+    const searchBtn    = document.getElementById('search-btn');
+    const resetBtn     = document.getElementById('reset-btn');
+    const searchResults= document.getElementById('search-results');
+
+    // تعبئة قائمة الأقسام في البحث
+    function fillSectionOptions() {
+      sectionSelect.innerHTML = '<option value="">--</option>';
+      sections.forEach(s => {
+        sectionSelect.innerHTML += `<option value="${s.id}">${s.name}</option>`;
+      });
+    }
+    fillSectionOptions();
+
+    // إظهار/إخفاء الحقول حسب نوع الفلتر
+    filterType.onchange = () => {
+      yearInput.style.display     = filterType.value==='year'?'inline-block':'none';
+      sectionSelect.style.display = filterType.value==='section'?'inline-block':'none';
+      typeInput.style.display     = filterType.value==='type'?'inline-block':'none';
+    };
+
+    // بحث محلي
+    searchBtn.onclick = () => {
+      let results = [];
+      sections.forEach(sec => {
+        (sec.files||[]).forEach(f => {
+          let ok = true;
+          const y  = new Date(f.archivedAt).getFullYear();
+          if (filterType.value==='year' && yearInput.value)
+            ok = ok && (y==yearInput.value);
+          if (filterType.value==='section' && sectionSelect.value)
+            ok = ok && (sec.id==sectionSelect.value);
+          if (filterType.value==='type' && typeInput.value)
+            ok = ok && f.filename.endsWith('.'+typeInput.value);
+          if (nameInput.value)
+            ok = ok && f.filename.includes(nameInput.value);
+          if (ok) results.push({ ...f, section: sec.name });
+        });
+      });
+      renderFiles(searchResults, results);
+    };
+
+    resetBtn.onclick = () => {
+      searchResults.innerHTML = '';
+      filterType.value = 'year';
+      filterType.onchange();
+      yearInput.value = '';
+      nameInput.value = '';
+    };
+
+    function renderFiles(container, arr) {
+      container.innerHTML = '';
+      if (!arr.length) {
+        container.innerHTML = '<p>لا توجد نتائج</p>';
+        return;
+      }
+      arr.forEach(f => {
+        const div = document.createElement('div');
+        div.className = 'file-item';
+        div.textContent = `${f.filename}`;
+        div.onclick = () => previewFile(f);
+        container.appendChild(div);
+      });
+    }
+
+    // —— Year Browsing —— //
+    const years = [...new Set(
+      sections.flatMap(s => (s.files||[]).map(f => new Date(f.archivedAt).getFullYear()))
+    )].sort((a,b)=>b-a);
+    const yearGrid   = document.getElementById('year-grid');
+    const sectionList= document.getElementById('section-list');
+    const fileList   = document.getElementById('file-list');
+
+    let selectedYear = null;
+
+    years.forEach(y => {
+      const card = document.createElement('div');
+      card.className = 'year-card';
+      card.textContent = y;
+      card.onclick = () => {
+        selectedYear = y;
+        // تمييز البطاقة
+        yearGrid.querySelectorAll('.year-card').forEach(c=>c.classList.remove('selected'));
+        card.classList.add('selected');
+        // عرض الأقسام
+        showSectionsForYear(y);
+      };
+      yearGrid.appendChild(card);
+    });
+
+    function showSectionsForYear(y) {
+      sectionList.innerHTML = '';
+      fileList.innerHTML = '';
+      const secs = sections.filter(sec =>
+        (sec.files||[]).some(f => new Date(f.archivedAt).getFullYear()===y)
+      );
+      if (!secs.length) {
+        sectionList.innerHTML = '<li>لا توجد أقسام لهذه السنة</li>';
+        return;
+      }
+      secs.forEach(sec => {
+        const li = document.createElement('li');
+        li.textContent = sec.name;
+        li.onclick = () => {
+          // تمييز القسم
+          sectionList.querySelectorAll('li').forEach(i=>i.classList.remove('selected'));
+          li.classList.add('selected');
+          showFilesForSection(sec, y);
+        };
+        sectionList.appendChild(li);
+      });
+    }
+
+    function showFilesForSection(sec, y) {
+      fileList.innerHTML = '';
+      const files = (sec.files||[]).filter(f =>
+        new Date(f.archivedAt).getFullYear()===y
+      );
+      if (!files.length) {
+        fileList.innerHTML = '<li>لا توجد ملفات في هذا القسم لهذه السنة</li>';
+        return;
+      }
+      files.forEach(f => {
+        const li = document.createElement('li');
+        li.textContent = f.filename;
+        li.onclick = () => previewFile({ ...f, section: sec.name });
+        fileList.appendChild(li);
+      });
+    }
+
+    // —— Preview Modal —— //
+    const fileModal  = document.getElementById('file-modal');
+    const iframePrev = document.getElementById('preview-frame');
+    const imgPrev    = document.getElementById('preview-img');
+    document.querySelectorAll('.close').forEach(el=>{
+      el.onclick = () => el.closest('.modal').style.display='none';
+    });
+
+    function previewFile(f) {
+      const isImg = f.dataURL.startsWith('data:image');
+      iframePrev.style.display = isImg ? 'none' : 'block';
+      imgPrev.style.display    = isImg ? 'block' : 'none';
+      if (isImg) imgPrev.src = f.dataURL;
+      else       iframePrev.src = f.dataURL;
+      fileModal.style.display = 'flex';
+    }
+  </script>
+</body>
+</html>
